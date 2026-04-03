@@ -39,6 +39,27 @@ jobs:
     - name: Install missing python modules
       run: /opt/uv/tools/qmk/bin/python3 -m pip install -r __qmk__/requirements.txt
 
+    - name: Patch old QMK for Python 3.14
+      run: |
+        python3 - <<'PY'
+        from pathlib import Path
+
+        path = Path("__qmk__/lib/python/qmk/math.py")
+        text = path.read_text()
+
+        text = text.replace(
+        "if isinstance(node, ast.Num):  # <number>",
+        "if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):  # <number>"
+        )
+        text = text.replace(
+        "return node.n",
+        "return node.value"
+        )
+
+        path.write_text(text)
+        print(f"patched: {path}")
+        PY
+
     - name: Compile and link
       run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
 
